@@ -2,31 +2,66 @@ import streamlit as st
 
 def render_route_card(route_data: dict, is_best_route: bool = False):
     """
-    Renders a Streamlit component displaying details for a specific route.
-    
-    Args:
-        route_data (dict): Dictionary containing 'path', 'distance', 'traffic', etc.
-        is_best_route (bool): Whether this is the AI-recommended optimal route.
+    Renders a premium glassmorphic route card using custom HTML/CSS.
     """
-    # Create a visual container for the card
-    with st.container():
-        # Add a border and some highlighting if it's the best route
-        if is_best_route:
-            st.success("🌿 EcoNav Recommended Route")
-            
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.metric(label="Distance", value=f"{route_data.get('distance', 0)} km")
-            
-        with col2:
-            st.metric(label="Traffic Level", value=route_data.get('traffic', 'Unknown'))
-            
-        with col3:
-            # You can add exposure/AQI metrics here later
-            st.metric(label="Exposure Score", value="Good") 
-            
-        # Display the path sequence
-        path = route_data.get('path', [])
-        st.markdown(f"**Path:** {' ➔ '.join(path)}")
-        st.divider()
+    path = route_data.get("path", [])
+    distance = route_data.get("distance", 0)
+    traffic = route_data.get("traffic", 0)
+    score = route_data.get("score", route_data.get("eco_score", "N/A"))
+    fuel = route_data.get("fuel", "N/A")
+    
+    # Build path string
+    path_str = " → ".join(path) if path else "Unknown"
+    
+    # Traffic level badge
+    if traffic <= 3:
+        traffic_label = "Low"
+        traffic_class = "green"
+        traffic_icon = "🟢"
+    elif traffic <= 6:
+        traffic_label = "Medium"
+        traffic_class = "amber"
+        traffic_icon = "🟡"
+    else:
+        traffic_label = "High"
+        traffic_class = "red"
+        traffic_icon = "🔴"
+    
+    # Score formatting
+    if isinstance(score, (int, float)):
+        score_display = f"{score:.2f}"
+    else:
+        score_display = str(score)
+
+    if is_best_route:
+        card_html = f"""
+        <div class="best-route-card">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+                <span style="font-size: 1.4rem;">🏆</span>
+                <span style="font-weight: 700; color: #34d399; font-size: 1rem;">EcoNav Recommended Route</span>
+            </div>
+            <div style="margin-bottom: 14px;">
+                <span class="stat-pill green">📏 {distance} km</span>
+                <span class="stat-pill {traffic_class}">{traffic_icon} Traffic: {traffic_label}</span>
+                <span class="stat-pill blue">⚡ Score: {score_display}</span>
+            </div>
+            <div style="color: #94a3b8; font-size: 0.88rem;">
+                <strong style="color: #f1f5f9;">Path:</strong> {path_str}
+            </div>
+        </div>
+        """
+    else:
+        card_html = f"""
+        <div class="alt-route-card">
+            <div style="margin-bottom: 12px;">
+                <span class="stat-pill">📏 {distance} km</span>
+                <span class="stat-pill {traffic_class}">{traffic_icon} Traffic: {traffic_label}</span>
+                <span class="stat-pill">⚡ Score: {score_display}</span>
+            </div>
+            <div style="color: #64748b; font-size: 0.85rem;">
+                <strong style="color: #94a3b8;">Path:</strong> {path_str}
+            </div>
+        </div>
+        """
+    
+    st.markdown(card_html, unsafe_allow_html=True)
