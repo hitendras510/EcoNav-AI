@@ -41,4 +41,4 @@ yarn-error.log*
 __pycache__/
 *.pyc
 *.pkl
-.eco_model.pth
+models/eco_model.pth
