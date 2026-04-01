@@ -1,14 +1,15 @@
 import asyncio
 import datetime
 
+from apps.backend.core.config import settings
 from models.train_model import run_training_pipeline
 
 
 class TrainingScheduler:
-    def __init__(self, interval_seconds: int = 3600 * 24):
-        self.interval_seconds = interval_seconds
+    def __init__(self, interval_seconds: int | None = None):
+        self.interval_seconds = interval_seconds or settings.TRAINING_INTERVAL_SECONDS
         self.is_running = False
-        self._task = None
+        self._task: asyncio.Task | None = None
 
     async def start(self):
         if self.is_running:
@@ -26,24 +27,22 @@ class TrainingScheduler:
                 pass
 
     async def _run(self):
-        print("Model training scheduler started!")
+        print("Model training scheduler started")
         while self.is_running:
             try:
                 success = await asyncio.to_thread(run_training_pipeline)
-                if success:
-                    next_run = datetime.datetime.now() + datetime.timedelta(
-                        seconds=self.interval_seconds
-                    )
-                    print(
-                        "Automated training completed successfully. "
-                        f"Next run scheduled at: {next_run:%Y-%m-%d %H:%M:%S}"
-                    )
-                else:
-                    print("Automated training skipped.")
-            except Exception as exc:
+                status = "completed" if success else "skipped"
+                next_run = datetime.datetime.now() + datetime.timedelta(
+                    seconds=self.interval_seconds
+                )
+                print(
+                    f"Automated training {status}. "
+                    f"Next run at {next_run:%Y-%m-%d %H:%M:%S}."
+                )
+            except Exception as exc:  # noqa: BLE001
                 print(f"Error during automated training: {exc}")
 
             await asyncio.sleep(self.interval_seconds)
 
 
-scheduler = TrainingScheduler(interval_seconds=600)
+scheduler = TrainingScheduler()

@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from apps.backend.api.route import router as eco_router
+from apps.backend.core.config import settings
 from apps.backend.services.ai_model import choose_best_route
 from apps.backend.services.training_scheduler import scheduler
 
@@ -18,7 +19,7 @@ async def lifespan(_: FastAPI):
     await scheduler.stop()
 
 
-app = FastAPI(title="EcoNav AI API", lifespan=lifespan)
+app = FastAPI(title=settings.APP_NAME, version=settings.VERSION, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -34,6 +35,11 @@ app.include_router(eco_router, prefix="/api/v1")
 @app.get("/")
 def home():
     return {"message": "EcoNav AI Running 🚀"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "service": settings.APP_NAME, "version": settings.VERSION}
 
 
 @app.get("/route")
