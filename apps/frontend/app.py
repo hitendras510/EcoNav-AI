@@ -13,10 +13,14 @@ from styles import inject_theme
 inject_theme()
 
 # ===== Imports =====
-from components.route_card import render_route_card, CITY_NODES, route_to_string
+from components.route_card import get_city_data, render_route_card, route_to_string
 from components.map_view import render_map_view
 from components.ai_engine import render_ai_engine
+from components.city_manager import render_city_manager
 from services.api_client import fetch_eco_route, check_backend_health
+
+# ===== Load live city data =====
+CITY_NODES, NODE_COORDS = get_city_data()
 
 # ===== Hero Banner =====
 st.markdown(
@@ -68,14 +72,14 @@ with st.sidebar:
 
     st.divider()
 
-    # Quick stats
+    # Quick stats — dynamic city count
     st.markdown(
-        """
+        f"""
         <div class="glass-card" style="padding: 16px;">
             <div style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px;">Quick Stats</div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                 <span style="color: #94a3b8; font-size: 0.85rem;">Cities</span>
-                <span style="color: #f1f5f9; font-weight: 600;">6</span>
+                <span style="color: #f1f5f9; font-weight: 600;">{len(CITY_NODES)}</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                 <span style="color: #94a3b8; font-size: 0.85rem;">Model</span>
@@ -92,13 +96,13 @@ with st.sidebar:
 
     st.divider()
 
-    # City reference
+    # City reference — now dynamic
     st.markdown(
         '<div style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; '
         'letter-spacing: 0.05em; margin-bottom: 8px;">City Nodes</div>',
         unsafe_allow_html=True,
     )
-    for node, city in CITY_NODES.items():
+    for node, city in sorted(CITY_NODES.items()):
         st.markdown(
             f'<div style="color: #94a3b8; font-size: 0.82rem; margin-bottom: 4px;">'
             f'<strong style="color: #34d399;">{node}</strong> — {city}</div>',
@@ -117,7 +121,7 @@ with st.sidebar:
 
 
 # ===== Main Tabs =====
-tab_router, tab_ai = st.tabs(["🗺️  Eco-Router", "⚙️  AI Engine"])
+tab_router, tab_cities, tab_ai = st.tabs(["🗺️  Eco-Router", "🏙️  City Manager", "⚙️  AI Engine"])
 
 
 # ──────────────────────────────────────────────
@@ -133,8 +137,8 @@ with tab_router:
         unsafe_allow_html=True,
     )
 
-    # City selection
-    node_options = list(CITY_NODES.keys())
+    # City selection — uses live data
+    node_options = sorted(CITY_NODES.keys())
     city_labels = [f"{CITY_NODES[n]} ({n})" for n in node_options]
     
     col_src, col_dst = st.columns(2)
@@ -166,8 +170,8 @@ with tab_router:
                 if "history" not in st.session_state:
                     st.session_state.history = []
                 st.session_state.history.insert(0, {
-                    "From": CITY_NODES[start_node],
-                    "To": CITY_NODES[end_node],
+                    "From": CITY_NODES.get(start_node, start_node),
+                    "To": CITY_NODES.get(end_node, end_node),
                     "Eco Route": route_to_string(data["route"]),
                     "Improvement": data.get("improvement", "N/A"),
                 })
@@ -193,7 +197,14 @@ with tab_router:
 
 
 # ──────────────────────────────────────────────
-# TAB 2 — AI ENGINE
+# TAB 2 — CITY MANAGER
+# ──────────────────────────────────────────────
+with tab_cities:
+    render_city_manager()
+
+
+# ──────────────────────────────────────────────
+# TAB 3 — AI ENGINE
 # ──────────────────────────────────────────────
 with tab_ai:
     render_ai_engine()

@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from apps.backend.api.graph import router as graph_router
 from apps.backend.api.route import router as eco_router
 from apps.backend.api.training import router as training_router
 from apps.backend.core.config import settings
@@ -32,6 +33,7 @@ app.add_middleware(
 
 app.include_router(eco_router, prefix="/api/v1")
 app.include_router(training_router, prefix="/api/v1/train")
+app.include_router(graph_router, prefix="/api/v1/graph")
 
 
 @app.get("/")

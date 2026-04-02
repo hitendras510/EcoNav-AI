@@ -1,4 +1,5 @@
 from apps.backend.services.eco_route_model import choose_best_neighbor
+from apps.backend.services import graph_store
 from apps.simulator.evaluator import Graph, RLEnv, get_route
 from packages.shared.utils import percent_improvement
 
@@ -24,22 +25,24 @@ def compute_distance(graph, path):
     return total
 
 
+def _build_graph() -> Graph:
+    """Build a Graph instance from the persisted graph store."""
+    g = Graph()
+    data = graph_store.get_graph()
+    for node_id in data["cities"]:
+        g.add_city(node_id)
+    for road in data["roads"]:
+        g.add_road(road["from"], road["to"], road["distance"], road["pollution"])
+    return g
+
+
 # =====================
 # MAIN SERVICE
 # =====================
 def get_route_service(start: str, end: str):
 
-    # GRAPH SETUP
-    g = Graph()
-
-    g.add_road("A", "B", 5, 10)
-    g.add_road("A", "C", 8, 3)
-    g.add_road("B", "D", 2, 2)
-    g.add_road("C", "D", 4, 6)
-    g.add_road("C", "E", 7, 1)
-    g.add_road("D", "E", 1, 2)
-    g.add_road("D", "F", 6, 8)
-    g.add_road("E", "F", 3, 1)
+    # GRAPH SETUP — loaded dynamically from data/graph.json
+    g = _build_graph()
 
     # VALIDATION
     if start not in g.graph or end not in g.graph:
@@ -47,6 +50,8 @@ def get_route_service(start: str, end: str):
 
     # BASELINE ROUTE
     baseline = get_route(g, start, end)
+    if baseline is None:
+        return {"error": f"No path exists between '{start}' and '{end}'. Add roads to connect them."}
     shortest_path = baseline["path"]
     shortest_exposure = baseline["total_exposure"]
 
