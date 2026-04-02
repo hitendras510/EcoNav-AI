@@ -94,12 +94,7 @@ def _build_graph() -> Graph:
 def get_route_service(start: str, end: str):
     """Compute eco-route using real-time AQI pollution data."""
 
-<<<<<<< HEAD
-    # GRAPH SETUP — loaded dynamically from data/graph.json
-    g = _build_graph()
-=======
     g, aqi_info = _build_graph_with_real_aqi()
->>>>>>> 59c6b1c51ad0a614c4cda0230c82ed0e47c42ed5
 
     # VALIDATION
     if start not in g.graph or end not in g.graph:
