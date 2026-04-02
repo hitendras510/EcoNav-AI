@@ -1,24 +1,39 @@
 import streamlit as st
+from services.api_client import fetch_graph
 
 
-# City node mapping — matches the graph defined in route_service.py
-CITY_NODES = {
-    "A": "Delhi",
-    "B": "Jaipur",
-    "C": "Agra",
-    "D": "Varanasi",
-    "E": "Lucknow",
-    "F": "Kolkata",
+# ---- Default fallbacks (used when backend is offline) ----
+_DEFAULT_CITY_NODES = {
+    "A": "Delhi", "B": "Jaipur", "C": "Agra",
+    "D": "Varanasi", "E": "Lucknow", "F": "Kolkata",
+}
+_DEFAULT_NODE_COORDS = {
+    "A": [28.6139, 77.2090], "B": [26.9124, 75.7873],
+    "C": [27.1767, 78.0081], "D": [25.3176, 82.9739],
+    "E": [26.8467, 80.9462], "F": [22.5726, 88.3639],
 }
 
-NODE_COORDS = {
-    "A": [28.6139, 77.2090],
-    "B": [26.9124, 75.7873],
-    "C": [27.1767, 78.0081],
-    "D": [25.3176, 82.9739],
-    "E": [26.8467, 80.9462],
-    "F": [22.5726, 88.3639],
-}
+
+def _load_from_backend():
+    """Fetch the live graph and build CITY_NODES / NODE_COORDS dicts."""
+    data = fetch_graph()
+    if data and "cities" in data:
+        cities = {}
+        coords = {}
+        for node_id, info in data["cities"].items():
+            cities[node_id] = info["name"]
+            coords[node_id] = [info["lat"], info["lng"]]
+        return cities, coords
+    return _DEFAULT_CITY_NODES.copy(), _DEFAULT_NODE_COORDS.copy()
+
+
+def get_city_data():
+    """Return (CITY_NODES, NODE_COORDS) — always live from backend."""
+    return _load_from_backend()
+
+
+# For backward-compat: module-level constants that get refreshed on import
+CITY_NODES, NODE_COORDS = get_city_data()
 
 
 def node_label(node: str) -> str:

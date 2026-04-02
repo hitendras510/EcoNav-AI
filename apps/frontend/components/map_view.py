@@ -1,5 +1,6 @@
 import streamlit as st
-from components.route_card import CITY_NODES, NODE_COORDS
+from components.route_card import get_city_data
+from services.api_client import fetch_graph
 
 
 def render_map_view(result: dict) -> None:
@@ -8,6 +9,9 @@ def render_map_view(result: dict) -> None:
     and shortest route on the same graph. Additionally renders a Leaflet
     map embed for real-world visualization.
     """
+    # Load live city data
+    CITY_NODES, NODE_COORDS = get_city_data()
+
     eco_path = result.get("route", [])
     shortest_path = result.get("shortest_route", [])
 
@@ -26,13 +30,20 @@ def render_map_view(result: dict) -> None:
     for i in range(len(shortest_path) - 1):
         short_edges.add((shortest_path[i], shortest_path[i + 1]))
 
-    # All graph edges (from route_service.py)
-    all_graph_edges = [
-        ("A", "B", 5, 10), ("A", "C", 8, 3),
-        ("B", "D", 2, 2), ("C", "D", 4, 6),
-        ("C", "E", 7, 1), ("D", "E", 1, 2),
-        ("D", "F", 6, 8), ("E", "F", 3, 1),
-    ]
+    # Load all graph edges dynamically from backend
+    graph_data = fetch_graph()
+    all_graph_edges = []
+    if graph_data and "roads" in graph_data:
+        for r in graph_data["roads"]:
+            all_graph_edges.append((r["from"], r["to"], r["distance"], r["pollution"]))
+    else:
+        # Fallback
+        all_graph_edges = [
+            ("A", "B", 5, 10), ("A", "C", 8, 3),
+            ("B", "D", 2, 2), ("C", "D", 4, 6),
+            ("C", "E", 7, 1), ("D", "E", 1, 2),
+            ("D", "F", 6, 8), ("E", "F", 3, 1),
+        ]
 
     lines = []
     lines.append("digraph EcoNav {")
