@@ -5,16 +5,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-<<<<<<< HEAD
+from apps.backend.api.aqi import router as aqi_router
+from apps.backend.api.credits import router as credits_router
 from apps.backend.api.graph import router as graph_router
 from apps.backend.api.route import router as eco_router
 from apps.backend.api.training import router as training_router
-=======
-from apps.backend.api.aqi import router as aqi_router
-from apps.backend.api.credits import router as credits_router
-from apps.backend.api.route import router as eco_router
 from packages.env_core.core.api import router as openenv_router
->>>>>>> 59c6b1c51ad0a614c4cda0230c82ed0e47c42ed5
 from apps.backend.core.config import settings
 from apps.backend.services.ai_model import choose_best_route
 from apps.backend.services.aqi_service import fetch_route_cities_aqi
@@ -43,13 +39,10 @@ app.add_middleware(
 )
 
 app.include_router(eco_router, prefix="/api/v1")
-<<<<<<< HEAD
 app.include_router(training_router, prefix="/api/v1/train")
 app.include_router(graph_router, prefix="/api/v1/graph")
-=======
 app.include_router(aqi_router, prefix="/api/v1")
 app.include_router(credits_router, prefix="/api/v1")
->>>>>>> 59c6b1c51ad0a614c4cda0230c82ed0e47c42ed5
 
 # OpenEnv standard endpoints at root level for spec compliance
 app.include_router(openenv_router)
