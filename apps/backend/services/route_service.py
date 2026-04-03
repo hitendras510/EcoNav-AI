@@ -13,7 +13,10 @@ from apps.backend.services.aqi_service import (
     get_pollution_weight_for_city,
 )
 from apps.backend.services.eco_route_model import choose_best_neighbor
+<<<<<<< HEAD
 from apps.backend.services import graph_store
+=======
+>>>>>>> 1c2f25b401a67215ea459ece945cb72cc7dbd373
 from apps.simulator.evaluator import Graph, RLEnv, get_route
 from packages.shared.utils import percent_improvement
 
@@ -78,6 +81,7 @@ def _build_graph_with_real_aqi(traffic_multiplier: float = 1.0) -> tuple[Graph, 
     return g, aqi_info
 
 
+<<<<<<< HEAD
 def _build_graph() -> Graph:
     """Build a Graph instance from the persisted graph store."""
     g = Graph()
@@ -89,6 +93,8 @@ def _build_graph() -> Graph:
     return g
 
 
+=======
+>>>>>>> 1c2f25b401a67215ea459ece945cb72cc7dbd373
 # =====================
 # MAIN SERVICE
 # =====================
@@ -103,8 +109,11 @@ def get_route_service(start: str, end: str, traffic_multiplier: float = 1.0):
 
     # BASELINE ROUTE (shortest path)
     baseline = get_route(g, start, end)
+<<<<<<< HEAD
     if baseline is None:
         return {"error": f"No path exists between '{start}' and '{end}'. Add roads to connect them."}
+=======
+>>>>>>> 1c2f25b401a67215ea459ece945cb72cc7dbd373
     shortest_path = baseline["path"]
     shortest_exposure = baseline["total_exposure"]
 

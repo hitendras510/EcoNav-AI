@@ -9,10 +9,15 @@ from fastapi.staticfiles import StaticFiles
 
 from apps.backend.api.aqi import router as aqi_router
 from apps.backend.api.credits import router as credits_router
+<<<<<<< HEAD
 from apps.backend.api.graph import router as graph_router
 from apps.backend.api.route import router as eco_router
 from apps.backend.api.training import router as training_router
 from apps.backend.api.network import router as network_router
+=======
+from apps.backend.api.network import router as network_router
+from apps.backend.api.route import router as eco_router
+>>>>>>> 1c2f25b401a67215ea459ece945cb72cc7dbd373
 from apps.backend.api.simulate import router as simulate_router
 from apps.backend.core.config import settings
 from apps.backend.services.ai_model import choose_best_route
@@ -43,8 +48,11 @@ app.add_middleware(
 )
 
 app.include_router(eco_router, prefix="/api/v1")
+<<<<<<< HEAD
 app.include_router(training_router, prefix="/api/v1/train")
 app.include_router(graph_router, prefix="/api/v1/graph")
+=======
+>>>>>>> 1c2f25b401a67215ea459ece945cb72cc7dbd373
 app.include_router(aqi_router, prefix="/api/v1")
 app.include_router(credits_router, prefix="/api/v1")
 app.include_router(network_router, prefix="/api/v1")
@@ -74,5 +82,11 @@ def get_best_route():
         {"path": ["A", "D", "C"], "distance": 6, "traffic": 2},
         {"path": ["A", "E", "C"], "distance": 4, "traffic": 6},
     ]
+<<<<<<< HEAD
     best, all_routes = choose_best_route(routes)
+=======
+
+    best, all_routes = choose_best_route(routes)
+
+>>>>>>> 1c2f25b401a67215ea459ece945cb72cc7dbd373
     return {"best_route": best, "all_routes": all_routes}
