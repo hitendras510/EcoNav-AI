@@ -458,7 +458,7 @@ function renderRouteResults(data) {
     const routeArr = data.route || [];
     document.getElementById('res-path').textContent = routeArr.map(n => CITY_NAMES[n] || n).join(' → ');
     document.getElementById('res-dist').textContent = `Distance: ${Math.round(data.total_distance)} km`;
-    document.getElementById('res-exp').textContent = `Exposure: ${Math.round(data.total_pollution)}`;
+    document.getElementById('res-exp').textContent = Math.round(data.total_pollution);
 
     // Map Updates
     if (currentRouteLayer) map.removeLayer(currentRouteLayer);
