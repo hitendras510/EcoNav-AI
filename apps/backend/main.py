@@ -67,4 +67,10 @@ def get_best_route():
 
 # Serve frontend at root - mount this LAST to avoid stealing API routes
 frontend_path = os.path.abspath("apps/frontend")
+public_path = os.path.join(frontend_path, "public")
+
+# Mount public assets first so they are available at the root URL
+if os.path.exists(public_path):
+    app.mount("/", StaticFiles(directory=public_path), name="public")
+
 app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
