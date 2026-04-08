@@ -14,7 +14,7 @@ COPY . .
 
 # Build the frontend
 WORKDIR /app/apps/frontend
-RUN npx vite build --debug
+RUN npx vite build
 
 # Use nginx to serve the static content
 FROM nginx:stable-alpine
