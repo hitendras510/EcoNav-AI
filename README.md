@@ -10,7 +10,7 @@ pinned: true
 
 # 🌱 EcoNav AI — Exposure Credit Platform
 
-[![EcoNav CI/CD](https://github.com/omdharb-bit/EcoNav-AI/actions/workflows/main.yml/badge.svg)](https://github.com/omdharb-bit/EcoNav-AI/actions)
+[![EcoNav CI/CD](https://github.com/hitendras510/EcoNav-AI/actions/workflows/main.yml/badge.svg)](https://github.com/hitendras510/EcoNav-AI/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![OpenEnv Compliant](https://img.shields.io/badge/OpenEnv-Compliant-10b981)](https://github.com/OpenEnv/spec)
 
@@ -49,13 +49,14 @@ EcoNav-AI/
 │   ├── backend/         # FastAPI server, AI services, and RL endpoints
 │   ├── frontend/        # Vite-powered dashboard and mapping interface
 │   ├── simulator/       # ML training and evaluation logic
-│   └── web/             # (Deprecated) Static web assets
 ├── packages/
-│   └── env_core/        # Shared RL environment logic (OpenEnv Spec)
+│   ├── env_core/        # Shared RL environment logic (OpenEnv Spec)
+│   ├── exposure-engine/ # Pollution exposure calculation primitives
+│   └── agent-engine/    # Baseline agent policies and LLM integration
 ├── requirements/        # Modularized dependency lists
 ├── server/              # Production entry points for Docker/HF Spaces
 ├── turbo.json           # Monorepo configuration
-└── inference.py         # Baseline agent evaluation script
+└── inference.py         # Baseline agent evaluation script (Compliance optimized)
 ```
 
 ---
@@ -70,22 +71,21 @@ EcoNav-AI/
 ### Quick Start (Recommended)
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/omdharb-bit/EcoNav-AI.git
+   git clone https://github.com/hitendras510/EcoNav-AI.git
    cd EcoNav-AI
    ```
 
 2. **Install Dependencies**:
    ```bash
-   npm install      # Installs monorepo build tools
-   pip install -r requirements/backend.txt  # Installs Python backend deps
+   npm install                               # Installs monorepo build tools
+   pip install -r requirements/backend.txt   # Installs Python backend deps
    ```
 
-3. **Run Everything**:
+3. **Run Dev Environment**:
    Use the Turbo-powered development command to start both the backend and frontend:
    ```bash
    npm run dev
    ```
-   *Note: If running on Windows, you may need to set `PYTHONPATH="."` manually if starting the backend via script.*
 
 ### Manual Startup
 - **Backend**: `python server/app.py` (Runs on [http://localhost:7860](http://localhost:7860))
@@ -93,7 +93,7 @@ EcoNav-AI/
 
 ---
 
-## 🧠 RL Evaluation (OpenEnv)
+## 🧠 RL Evaluation (OpenEnv Compliance)
 
 The environment supports four standard evaluation tasks of increasing complexity:
 1. `easy_route`: Delhi to Kolkata (15 steps).
@@ -101,9 +101,12 @@ The environment supports four standard evaluation tasks of increasing complexity
 3. `hard_pollution_dodge`: Agra to Kolkata (6 steps).
 4. `expert_credit_max`: Maximize credits while reaching the goal (10 steps).
 
-**Baseline Evaluation**:
+**Running Baseline Evaluation**:
+The `inference.py` script is optimized for OpenEnv compliance, featuring structured logging (`[START]`, `[STEP]`, `[END]`) and LLM agent support.
+
 ```bash
-export ENV_URL="http://127.0.0.1:7860"
+export ENV_URL="http://localhost:7860"
+export HF_TOKEN="your_huggingface_token"
 python inference.py
 ```
 
@@ -133,4 +136,3 @@ We maintain high code quality standards through automated linting and formatting
 ## 📜 License
 
 Distributed under the **MIT License**. See `LICENSE` for more information.
-
