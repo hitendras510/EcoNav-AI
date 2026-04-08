@@ -65,11 +65,6 @@ def get_best_route():
     return {"best_route": best, "all_routes": all_routes}
 
 
-# Mount static files with a /static prefix to avoid route collisions
+# Serve frontend at root - mount this LAST to avoid stealing API routes
 frontend_path = os.path.abspath("apps/frontend")
-app.mount("/static", StaticFiles(directory=frontend_path), name="static")
-
-
-@app.get("/")
-def home():
-    return FileResponse(os.path.join(frontend_path, "index.html"))
+app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
