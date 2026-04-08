@@ -10,6 +10,13 @@ class RouteRequest(BaseModel):
     route_type: Optional[str] = "full"
 
 
+class RouteAlternative(BaseModel):
+    type: str
+    route: List[str]
+    total_distance: float
+    total_pollution: float
+    exposure_credits: Optional[Dict[str, Any]] = None
+
 class RouteResponse(BaseModel):
     route: List[str]
     total_distance: float
@@ -22,3 +29,4 @@ class RouteResponse(BaseModel):
     data_source: Optional[str] = None
     exposure_credits: Optional[Dict[str, Any]] = None
     shortest_credits: Optional[Dict[str, Any]] = None
+    alternatives: Optional[List[RouteAlternative]] = None

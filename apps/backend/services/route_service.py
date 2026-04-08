@@ -116,12 +116,13 @@ def get_route_service(start: str, end: str, traffic_multiplier: float = 1.0, rou
     shortest_path = baseline["path"]
     shortest_exposure = baseline["total_exposure"]
 
-    # RL ENV ROUTE (eco-optimised)
-    if route_type == "shortest":
-        eco_path = shortest_path
-    else:
+    paths = {}
+    for rtype in ["shortest", "medium", "full"]:
+        if rtype == "shortest":
+            paths[rtype] = shortest_path
+            continue
+
         env = RLEnv(g, start=start, destination=end)
-    
         state = env.reset()
         path = [state]
     
@@ -142,7 +143,7 @@ def get_route_service(start: str, end: str, traffic_multiplier: float = 1.0, rou
                 type("obj", (), {"total_exposure": 0}),
                 neighbors,
                 destination=end,
-                route_type=route_type,
+                route_type=rtype,
             )
     
             next_state, reward, done = env.step(action)
@@ -156,9 +157,11 @@ def get_route_service(start: str, end: str, traffic_multiplier: float = 1.0, rou
     
         # FALLBACK
         if len(path) < 2 or path[-1] != end:
-            eco_path = shortest_path
+            paths[rtype] = shortest_path
         else:
-            eco_path = path
+            paths[rtype] = path
+
+    eco_path = paths[route_type]
 
     # METRICS
     eco_exposure = compute_exposure(g, eco_path)
@@ -185,6 +188,23 @@ def get_route_service(start: str, end: str, traffic_multiplier: float = 1.0, rou
         distances=EDGE_DISTANCES,
         is_eco_route=False,
     )
+    
+    alternatives = []
+    for rtype, rpath in paths.items():
+        is_eco_r = rpath != shortest_path
+        r_credits = calculate_route_credits(
+            rpath,
+            distances=EDGE_DISTANCES,
+            is_eco_route=is_eco_r,
+            shortest_route=shortest_path,
+        )
+        alternatives.append({
+            "type": rtype,
+            "route": rpath,
+            "total_distance": compute_distance(g, rpath),
+            "total_pollution": compute_exposure(g, rpath),
+            "exposure_credits": route_credits_to_dict(r_credits)
+        })
 
     # RESPONSE
     return {
@@ -199,4 +219,5 @@ def get_route_service(start: str, end: str, traffic_multiplier: float = 1.0, rou
         "data_source": "real-time",
         "exposure_credits": route_credits_to_dict(eco_credits),
         "shortest_credits": route_credits_to_dict(shortest_credits),
+        "alternatives": alternatives
     }
