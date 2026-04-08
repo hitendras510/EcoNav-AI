@@ -3,8 +3,8 @@ FROM node:20-slim AS frontend-build
 WORKDIR /app
 COPY package*.json ./
 COPY apps/frontend/package*.json ./apps/frontend/
-RUN npm cache clean --force
-RUN npm install --force
+RUN rm -rf package-lock.json
+RUN npm install
 COPY . .
 WORKDIR /app/apps/frontend
 RUN npx vite build
