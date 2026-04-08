@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v=3">
 </head>
 <body class="dashboard-layout">
     <!-- Sidebar Navigation -->
@@ -178,19 +178,7 @@
                     <label for="end-node">📍 Destination City</label>
                     <input type="text" id="end-node" class="text-input" placeholder="Search any city... (e.g. Kolkata, Pune)" value="Kolkata">
                 </div>
-                <div class="input-group">
-                    <label for="route-type">🧭 Route Preference</label>
-                    <div style="display:flex; gap:0.5rem;">
-                        <select id="route-type" class="text-input" style="flex:1; height: 42px; border-radius: 8px; background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 0 1rem; cursor: pointer;">
-                            <option value="shortest" style="background:#1e293b; color:#fff;">Shortest Path</option>
-                            <option value="medium" style="background:#1e293b; color:#fff;">Eco Route (Balanced)</option>
-                            <option value="full" selected style="background:#1e293b; color:#fff;">Full Eco Route (Max Priority)</option>
-                        </select>
-                        <button id="btn-map-select" class="btn" style="padding:0; width:42px; height:42px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);" title="Select points on map">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                        </button>
-                    </div>
-                </div>
+
             </div>
             
             <!-- Hidden traffic slider for normal view (default 1.0) -->
@@ -209,43 +197,14 @@
                     
                     <!-- Route Analysis Card -->
                     <div class="glass analysis-card">
-                        <h3 style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem;">🏆 Route Comparison</h3>
+                        <h3 style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem;">🏆 Select Your Route</h3>
                         
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                            <!-- Eco Path Result -->
-                            <div class="card-inner" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 12px; padding: 1rem;">
-                                <h4 style="color: #10b981; margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem; font-size: 0.9rem;">
-                                    🌿 Recommended Eco Route
-                                </h4>
-                                <div class="pill-container" style="flex-direction: column; align-items: flex-start; gap:0.4rem;">
-                                    <div class="pill" style="font-size: 11px;">🗺 <span id="res-dist">0 km</span></div>
-                                    <div class="pill outline" style="font-size: 11px;">🌫 Exposure: <span id="res-exp">0</span></div>
-                                    <div class="pill" style="font-size: 11px; background: rgba(16, 185, 129, 0.2);">📈 Saved: <span id="res-advantage">0%</span></div>
-                                </div>
-                                <div class="path-details" style="margin-top: 0.75rem; font-size: 12px;">
-                                    <strong>Eco Path:</strong> <span id="res-path" style="color: #10b981;">...</span>
-                                    <div id="res-grade" style="margin-top:0.25rem; font-weight: 600;">Grade: ?</div>
-                                </div>
-                            </div>
-
-                            <!-- Shortest Path Result -->
-                            <div class="card-inner" style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.1); border-radius: 12px; padding: 1rem;">
-                                <h4 style="color: #ef4444; margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem; font-size: 0.9rem;">
-                                    🏎 Direct (Shortest) Path
-                                </h4>
-                                <div class="pill-container" style="flex-direction: column; align-items: flex-start; gap:0.4rem;">
-                                    <div class="pill" style="font-size: 11px;">🗺 <span id="res-dist-short">0 km</span></div>
-                                    <div class="pill outline" style="font-size: 11px;">🌫 Exposure: <span id="res-exp-short">0</span></div>
-                                    <div class="pill" style="font-size: 11px; opacity: 0.6;">📈 Baseline</div>
-                                </div>
-                                <div class="path-details" style="margin-top: 0.75rem; font-size: 12px;">
-                                    <strong>Shortest Path:</strong> <span id="short-path" style="color: #ef4444;">...</span>
-                                </div>
-                            </div>
+                        <div id="route-alternatives-container" style="display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1rem;">
+                            <!-- Dynamically injected via JS -->
                         </div>
                         
                         <div class="info-banner" id="info-banner-text">
-                            ℹ️ Comparison complete. Green paths prioritize health; Red paths prioritize speed.
+                            ℹ️ Green paths prioritize health; Red paths prioritize distance; Orange balance both.
                         </div>
                     </div>
                     
@@ -324,15 +283,27 @@
             <div id="traffic-error" style="color: #ef4444; font-size: 14px; margin-top: 1rem;" class="hidden"></div>
             
             <div id="traffic-results" class="hidden mt-2">
-                <div class="glass analysis-card" style="margin-bottom: 2rem;">
-                    <h3 style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem;">📈 Traffic Run Analysis</h3>
-                    <div class="card-inner">
-                        <div class="pill-container">
-                            <span class="pill outline" id="traffic-res-dist">Distance: ...</span>
-                            <span class="pill" id="traffic-res-exp" style="border-color:#f59e0b; color:#f59e0b;">Exposure: ...</span>
-                            <span class="pill outline" id="traffic-res-path">Path: ...</span>
+                <div class="glass analysis-card" style="margin-bottom: 2rem; position: relative; overflow: hidden;">
+                    <!-- Traffic warning banner embedded in card -->
+                    <div id="traffic-warning-banner" style="position:absolute; top:0; left:0; right:0; height:4px; background:var(--accent-primary);"></div>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem;">
+                        <h3 style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem;">📈 Traffic Run Analysis <span id="traffic-multiplier-badge" style="font-size:0.75rem; background:rgba(255,255,255,0.1); padding:0.2rem 0.5rem; border-radius:12px;"></span></h3>
+                        <div style="text-align:right;">
+                            <div id="traffic-res-time" style="font-size: 1.5rem; font-weight: 700; color: #fff;">-- hrs</div>
+                            <div style="font-size: 0.8rem; color: #94a3b8;" id="traffic-res-speed">Avg Speed: -- km/h</div>
                         </div>
-                        <p style="color:var(--text-secondary); font-size: 0.9rem;" id="traffic-res-segments"></p>
+                    </div>
+                    <div class="card-inner">
+                        <div class="pill-container" style="margin-bottom: 1.5rem;">
+                            <span class="pill outline" id="traffic-res-dist">Distance: ...</span>
+                            <span class="pill outline" id="traffic-res-base-exp" style="border-color:#10b981; color:#10b981; opacity:0.8;">Base Exp: ...</span>
+                            <span class="pill" id="traffic-res-exp" style="border-color:#f59e0b; color:#f59e0b; font-weight:bold;">Traffic Exp: ...</span>
+                        </div>
+                        
+                        <h4 style="font-size:0.85rem; color:#94a3b8; margin-bottom:0.75rem; text-transform:uppercase; letter-spacing:1px;">Route Timeline & Local AQI</h4>
+                        <div id="traffic-segment-timeline" style="display:flex; flex-direction:column; gap:0.5rem; overflow-x:auto; padding-bottom:0.5rem;">
+                            <!-- Injected JS Step Timeline -->
+                        </div>
                     </div>
                 </div>
                 
@@ -447,6 +418,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=12"></script>
 </body>
 </html>

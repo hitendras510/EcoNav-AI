@@ -1006,3 +1006,13 @@ input:focus, select:focus {
     position: relative;
     z-index: 2;
 }
+
+path.glowing-route { filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.9)); transition: stroke-opacity 0.3s, opacity 0.3s; }
+path.glowing-route-shortest { filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.9)); transition: stroke-opacity 0.3s, opacity 0.3s; }
+path[class*="route-path-"] { transition: stroke-opacity 0.3s, opacity 0.3s; }
+
+.city-tooltip { background: rgba(15, 23, 42, 0.8) !important; color: #e2e8f0 !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 0.8rem !important; backdrop-filter: blur(4px); } .leaflet-tooltip-top:before { border-top-color: rgba(15, 23, 42, 0.8) !important; }
+
+path.glow-green { filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.9)); }
+path.glow-orange { filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.9)); }
+path.glow-red { filter: drop-shadow(0 0 12px rgba(239, 68, 68, 1)); }

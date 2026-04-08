@@ -14,11 +14,14 @@ const viewTasks = document.getElementById('view-tasks');
 
 // --- Map Initialization ---
 let map = L.map('map').setView([26.0, 80.0], 5);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    subdomains: 'abcd',
-    maxZoom: 19
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EAP, and the GIS User Community',
+    maxZoom: 18
 }).addTo(map);
+
+// Apply cinematic dark filter to the map tiles so glowing paths pop
+document.getElementById('map').style.background = '#000';
+document.querySelector('#map .leaflet-tile-pane').style.filter = 'brightness(0.35) saturate(0.8) contrast(1.4)';
 
 let currentRouteLayer = null;
 let currentShortestRouteLayer = null;
@@ -29,11 +32,14 @@ let mapSelectMarkers = [];
 
 // Traffic Engine Map
 let mapTraffic = L.map('map-traffic').setView([26.0, 80.0], 5);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    subdomains: 'abcd',
-    maxZoom: 19
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EAP, and the GIS User Community',
+    maxZoom: 18
 }).addTo(mapTraffic);
+
+// Apply cinematic dark filter to the map tiles so glowing paths pop
+document.getElementById('map-traffic').style.background = '#000';
+document.querySelector('#map-traffic .leaflet-tile-pane').style.filter = 'brightness(0.35) saturate(0.8) contrast(1.4)';
 
 let currentTrafficRouteLayer = null;
 
@@ -210,62 +216,7 @@ async function geocodeCity(name) {
 
 
 
-// --- Manual Map Selection ---
-document.getElementById('btn-map-select').addEventListener('click', () => {
-    mapSelectionMode = !mapSelectionMode;
-    const btn = document.getElementById('btn-map-select');
-    
-    if (mapSelectionMode) {
-        btn.style.background = 'rgba(14, 165, 233, 0.2)';
-        btn.style.color = '#0ea5e9';
-        btn.style.borderColor = 'rgba(14, 165, 233, 0.5)';
-        document.getElementById('map').style.cursor = 'crosshair';
-        mapSelectStage = 0;
-        // Clear previous selection markers
-        mapSelectMarkers.forEach(m => map.removeLayer(m));
-        mapSelectMarkers = [];
-        
-        // Tooltip hint
-        const info = document.getElementById('info-banner-text');
-        info.innerHTML = "📍 Click on the map to select <strong>Start City</strong>";
-        info.parentElement.classList.remove('hidden');
-    } else {
-        btn.style.background = '';
-        btn.style.color = '';
-        btn.style.borderColor = '';
-        document.getElementById('map').style.cursor = '';
-    }
-});
 
-map.on('click', (e) => {
-    if (!mapSelectionMode) return;
-    
-    const { lat, lng } = e.latlng;
-    const coordStr = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-    
-    if (mapSelectStage === 0) {
-        document.getElementById('start-node').value = coordStr;
-        const m = L.marker([lat, lng], {icon: L.divIcon({className: 'custom-div-icon', html: "<div style='background:#0ea5e9; width:12px; height:12px; border-radius:50%; border:2px solid #fff;'></div>", iconSize:[12,12]})}).addTo(map);
-        mapSelectMarkers.push(m);
-        mapSelectStage = 1;
-        document.getElementById('info-banner-text').innerHTML = "🏁 Click on the map to select <strong>Destination City</strong>";
-    } else {
-        document.getElementById('end-node').value = coordStr;
-        const m = L.marker([lat, lng], {icon: L.divIcon({className: 'custom-div-icon', html: "<div style='background:#f43f5e; width:12px; height:12px; border-radius:50%; border:2px solid #fff;'></div>", iconSize:[12,12]})}).addTo(map);
-        mapSelectMarkers.push(m);
-        
-        // Reset mode and trigger search
-        mapSelectionMode = false;
-        document.getElementById('map').style.cursor = '';
-        const btn = document.getElementById('btn-map-select');
-        btn.style.background = '';
-        btn.style.color = '';
-        btn.style.borderColor = '';
-        
-        // Auto-submit
-        document.getElementById('submit-route').click();
-    }
-});
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371; // km
@@ -277,16 +228,12 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
 }
 
-document.getElementById('route-type').addEventListener('change', () => {
-    if (!routeResults.classList.contains('hidden')) {
-        btnSubmit.click();
-    }
-});
+
 
 btnSubmit.addEventListener('click', async () => {
     const startStr = document.getElementById('start-node').value.trim();
     const endStr = document.getElementById('end-node').value.trim();
-    const routeType = document.getElementById('route-type').value;
+    const routeType = 'full';
     const multiplier = 1.0; 
     
     // UI Reset
@@ -320,47 +267,49 @@ btnSubmit.addEventListener('click', async () => {
             const seed = ((startStr.charCodeAt(0) || 0) + (endStr.charCodeAt(0) || 0)) % 100;
             const pseudoAqi = 50 + seed; // 50-150 AQI range
             
-            let mockDist = straightDist * 1.3;
-            let mockPollution = mockDist * pseudoAqi * 0.04;
-            let improvement = "0%";
             let customCoords = [[startLat, startLng], [endLat, endLng]];
-
-            if (routeType === 'shortest') {
-                mockDist = straightDist * 1.15;
-                mockPollution = mockDist * pseudoAqi * 0.05;
-                improvement = "0%";
-                customCoords = [[startLat, startLng], [endLat, endLng]];
-            } else if (routeType === 'medium') {
-                mockDist = straightDist * 1.25; 
-                mockPollution = mockDist * pseudoAqi * 0.04;
-                improvement = "8% (Simulated)";
-                const midLat = (startLat + endLat) / 2 + 1.5;
-                const midLng = (startLng + endLng) / 2 + 1.5;
-                customCoords = [[startLat, startLng], [midLat, midLng], [endLat, endLng]];
-            } else {
-                mockDist = straightDist * 1.4;
-                mockPollution = mockDist * pseudoAqi * 0.035; 
-                improvement = "15% (Simulated)";
-                const midLat = (startLat + endLat) / 2 + 2.5;
-                const midLng = (startLng + endLng) / 2 - 2.5;
-                customCoords = [[startLat, startLng], [midLat, midLng], [endLat, endLng]];
-            }
-            
-            data = {
-                route: customCoords.map((c, i) => i === 0 ? startStr : (i === customCoords.length - 1 ? endStr : "Detour Node")),
-                custom_coords: customCoords,
-                total_distance: mockDist,
-                total_pollution: mockPollution,
-                shortest_route: [startStr, endStr],
-                improvement: improvement,
-                exposure_credits: {
-                    final_credit_change: (Math.random() > 0.5 ? 20 : -10),
-                    overall_grade: "B",
-                    overall_emoji: "🟡",
-                    segments: [
-                        {from: startStr, to: endStr, avg_aqi: pseudoAqi, credit_delta: 0, emoji: "🚦"}
-                    ]
+            const makeMockAlt = (type, distMult, pollMult) => {
+                let mockDist = straightDist * distMult;
+                let mockPoll = mockDist * pseudoAqi * pollMult;
+                let coords = [[startLat, startLng]];
+                if (type === 'medium') {
+                    coords.push([(startLat+endLat)/2 + 1.5, (startLng+endLng)/2 + 1.5]);
+                } else if (type === 'full') {
+                    coords.push([(startLat+endLat)/2 + 2.5, (startLng+endLng)/2 - 2.5]);
                 }
+                coords.push([endLat, endLng]);
+                
+                return {
+                    type: type,
+                    route: coords.map((c, i) => i === 0 ? startStr : (i === coords.length-1 ? endStr : `Detour ${i}`)),
+                    custom_coords: coords,
+                    total_distance: mockDist,
+                    total_pollution: mockPoll,
+                    exposure_credits: {
+                        final_credit_change: type === 'full' ? 45 : (type === 'medium' ? 10 : -35),
+                        overall_grade: type === 'full' ? "A" : (type === 'medium' ? "B" : "D"),
+                        overall_emoji: type === 'full' ? "🌟" : (type === 'medium' ? "🟢" : "🔴"),
+                        segments: [
+                            {from: startStr, to: endStr, avg_aqi: pseudoAqi, credit_delta: type === 'full' ? 45 : -35, emoji: type === 'full' ? "🌟" : "🔴"}
+                        ]
+                    }
+                };
+            };
+
+            const alts = [
+                makeMockAlt('shortest', 1.15, 0.05),
+                makeMockAlt('medium', 1.25, 0.04),
+                makeMockAlt('full', 1.4, 0.035)
+            ];
+
+            data = {
+                route: [startStr, endStr],
+                custom_coords: customCoords,
+                total_distance: straightDist,
+                total_pollution: straightDist * pseudoAqi * 0.04,
+                alternatives: alts,
+                custom_routed_fallback: true,
+                exposure_credits: alts[2].exposure_credits // Give eco credits by default for global tracker
             };
         }
 
@@ -436,12 +385,48 @@ document.getElementById('submit-traffic').addEventListener('click', async () => 
         const routeArr = data.route || [];
 
         // Populate the traffic stats
-        document.getElementById('traffic-res-dist').textContent = `Distance: ${Math.round(data.total_distance || 0)} km`;
-        document.getElementById('traffic-res-exp').textContent = `Exposure: ${Math.round(data.total_pollution || 0)}`;
-        document.getElementById('traffic-res-path').textContent = `Path: ${routeArr.map(n => CITY_NAMES[n] || n).join(' → ')}`;
+        const dist = Math.round(data.total_distance || 0);
+        const exp = Math.round(data.total_pollution || 0);
+        const baseExp = Math.round(exp / multiplier);
+        const speed = Math.max(5, Math.round(60 / multiplier)); // Baseline 60km/h
+        const timeHrs = (dist / speed).toFixed(1);
+
+        document.getElementById('traffic-res-dist').innerHTML = `📏 <strong>${dist} km</strong>`;
+        document.getElementById('traffic-res-base-exp').innerHTML = `🌱 Base Risk: <strong>${baseExp}</strong>`;
+        let expColor = multiplier > 1.2 ? '#f43f5e' : (multiplier < 0.8 ? '#10b981' : '#f59e0b');
+        document.getElementById('traffic-res-exp').innerHTML = `🚦 Traffic Risk: <strong style="color:${expColor}">${exp}</strong>`;
+        document.getElementById('traffic-res-exp').style.borderColor = expColor;
+
+        document.getElementById('traffic-res-speed').textContent = `Avg Speed: ${speed} km/h`;
+        document.getElementById('traffic-res-time').textContent = `${timeHrs} hrs`;
         
-        const segStr = data.exposure_credits?.segments?.map(s => `${CITY_NAMES[s.from] || s.from} to ${CITY_NAMES[s.to] || s.to} (AQI: ${s.avg_aqi})`).join(' | ');
-        document.getElementById('traffic-res-segments').textContent = `Segments: ${segStr || 'N/A'}`;
+        // Setup banners
+        let bannerColor = multiplier > 1.2 ? '#ef4444' : (multiplier < 0.8 ? '#10b981' : '#f59e0b');
+        document.getElementById('traffic-warning-banner').style.background = bannerColor;
+        document.getElementById('traffic-multiplier-badge').textContent = `x${multiplier.toFixed(1)} Flow`;
+        document.getElementById('traffic-multiplier-badge').style.color = bannerColor;
+
+        // Render Timeline UI
+        const tlContainer = document.getElementById('traffic-segment-timeline');
+        tlContainer.innerHTML = '';
+        if (data.exposure_credits?.segments) {
+            let html = '<div style="display:flex; gap:1rem; padding-top:0.5rem; padding-bottom:0.5rem;">';
+            data.exposure_credits.segments.forEach((s, i) => {
+                let badgeColor = s.avg_aqi > 150 ? '#ef4444' : (s.avg_aqi > 100 ? '#f59e0b' : '#10b981');
+                html += `
+                    <div style="flex-shrink:0; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); padding:0.75rem; border-radius:8px; min-width:150px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                        <div style="font-size:0.7rem; color:#94a3b8; margin-bottom:0.25rem;">Step ${i+1}: ${CITY_NAMES[s.from]||s.from}</div>
+                        <div style="font-weight:bold; font-size:0.9rem; margin-bottom:0.5rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">👉 ${CITY_NAMES[s.to]||s.to}</div>
+                        <div style="font-size:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+                            <span>AQI:</span>
+                            <span style="background:${badgeColor}22; color:${badgeColor}; padding:0.1rem 0.4rem; border-radius:4px; font-weight:800; font-size:0.8rem;">${s.avg_aqi}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            tlContainer.innerHTML = html;
+        }
         
         resultsPanel.classList.remove('hidden');
         resultsPanel.classList.add('animate-in');
@@ -454,6 +439,28 @@ document.getElementById('submit-traffic').addEventListener('click', async () => 
         if (currentTrafficRouteLayer) mapTraffic.removeLayer(currentTrafficRouteLayer);
         if (window.trafficRouteControl) mapTraffic.removeControl(window.trafficRouteControl);
         
+        // Determine Map Path Color and Animation Speed
+        let mapLineColor = multiplier > 1.2 ? '#ef4444' : (multiplier < 0.8 ? '#10b981' : '#f59e0b');
+        let mapLineClass = multiplier > 1.2 ? 'glowing-route glow-red' : (multiplier < 0.8 ? 'glowing-route glow-green' : 'glowing-route glow-orange');
+        
+        let animSpeed = 1.5 * multiplier; // 0.5x = 0.75s (fast), 3.0x = 4.5s (slow)
+        
+        // Dynamically inject animation style for this speed
+        let styleEl = document.getElementById('dynamic-traffic-style');
+        if (!styleEl) {
+            styleEl = document.createElement('style');
+            styleEl.id = 'dynamic-traffic-style';
+            document.head.appendChild(styleEl);
+        }
+        styleEl.innerHTML = `
+            @keyframes trafficFlowAnim {
+                to { stroke-dashoffset: -200; }
+            }
+            .flow-anim-cars {
+                animation: trafficFlowAnim ${Math.max(0.5, animSpeed * 3)}s linear infinite;
+            }
+        `;
+
         const coords = data.custom_coords ? data.custom_coords : routeArr.map(n => CITY_COORDS[n]).filter(Boolean);
         if (coords.length > 0) {
             currentTrafficRouteLayer = L.featureGroup().addTo(mapTraffic);
@@ -466,7 +473,10 @@ document.getElementById('submit-traffic').addEventListener('click', async () => 
                 showAlternatives: false,
                 createMarker: function() { return null; },
                 lineOptions: {
-                    styles: [{ className: 'glowing-route glow-red', weight: 6, color: '#f43f5e' }]
+                    styles: [
+                        { className: mapLineClass, weight: 8, color: mapLineColor, opacity: 0.7 },
+                        { className: 'flow-anim-cars', weight: 3, color: '#ffffff', opacity: 1, dashArray: '8, 24' }
+                    ]
                 }
             }).addTo(mapTraffic);
             
@@ -474,12 +484,14 @@ document.getElementById('submit-traffic').addEventListener('click', async () => 
                 const isEndpoint = i === 0 || i === coords.length - 1;
                 L.circleMarker(coord, {
                     radius: isEndpoint ? 8 : 5,
-                    fillColor: isEndpoint ? "#0ea5e9" : "#f43f5e",
+                    fillColor: isEndpoint ? "#0ea5e9" : mapLineColor,
                     color: "#fff",
                     weight: 2,
                     opacity: 1,
                     fillOpacity: 1
-                }).bindTooltip(CITY_NAMES[routeArr[i]] || routeArr[i], {permanent: true, direction: "top"}).addTo(currentTrafficRouteLayer);
+                }).bindTooltip(CITY_NAMES[routeArr[i]] || routeArr[i], {
+                    permanent: true, direction: "top", className: 'city-tooltip', offset: [0, -5]
+                }).addTo(currentTrafficRouteLayer);
             });
             setTimeout(() => mapTraffic.invalidateSize(), 50);
         }
@@ -532,157 +544,33 @@ document.getElementById('submit-traffic').addEventListener('click', async () => 
     }
 });
 
-function renderRouteResults(data) {
-    const credits = data.exposure_credits || {};
-    
-    // Credits
-    const cChange = credits.final_credit_change || 0;
-    const sign = cChange > 0 ? '+' : '';
-    const cColor = cChange >= 0 ? '#10b981' : '#f43f5e';
-    
-    const elCred = document.getElementById('res-credits');
-    if (elCred) {
-        elCred.textContent = `${sign}${cChange}`;
-        elCred.style.color = cColor;
-    }
-    
-    const elGrade = document.getElementById('res-grade');
-    if (elGrade) {
-        elGrade.textContent = `${credits.overall_emoji || ''} Grade ${credits.overall_grade || '?'}`;
-    }
-    
-    // Advantage
-    document.getElementById('res-advantage').textContent = data.improvement || '0%';
-    
-    // Summary lines
-    const routeArr = data.route || [];
-    const shortestArr = data.shortest_route || [];
-    
-    document.getElementById('res-path').textContent = routeArr.map(n => CITY_NAMES[n] || n).join(' → ');
-    
-    // Update baseline if available
-    const shortPathEl = document.getElementById('short-path');
-    if (shortPathEl && shortestArr.length > 0) {
-        shortPathEl.textContent = shortestArr.map(n => CITY_NAMES[n] || n).join(' → ');
-    } else if (shortPathEl) {
-        shortPathEl.textContent = "N/A (Simulated or no baseline)";
-    }
-
-    // Stats for Eco Path
-    document.getElementById('res-dist').textContent = `${Math.round(data.total_distance)} km`;
-    document.getElementById('res-exp').textContent = Math.round(data.total_pollution);
-    
-    // Stats for Shortest Path
-    const resDistShort = document.getElementById('res-dist-short');
-    const resExpShort = document.getElementById('res-exp-short');
-    if (resDistShort) resDistShort.textContent = `${Math.round(data.shortest_distance || data.total_distance * 0.9)} km`;
-    if (resExpShort) resExpShort.textContent = Math.round(data.shortest_exposure || data.total_pollution * 1.2);
-
-    // Map Updates - Clear previous
-    if (currentRouteLayer) map.removeLayer(currentRouteLayer);
-    if (window.routeControlMain) map.removeControl(window.routeControlMain);
-    if (currentShortestRouteLayer) map.removeLayer(currentShortestRouteLayer);
-    if (shortestRouteControlMain) map.removeControl(shortestRouteControlMain);
-    
-    // 1. Draw Eco Route (Green)
-    const ecoCoords = data.custom_coords ? data.custom_coords : routeArr.map(n => CITY_COORDS[n]).filter(Boolean);
-    if (ecoCoords.length > 0) {
-        currentRouteLayer = L.featureGroup().addTo(map);
-        
-        window.routeControlMain = L.Routing.control({
-            waypoints: ecoCoords.map(c => L.latLng(c[0], c[1])),
-            routeWhileDragging: false,
-            addWaypoints: false,
-            fitSelectedRoutes: true,
-            showAlternatives: false,
-            createMarker: function() { return null; },
-            lineOptions: {
-                styles: [{ className: 'glowing-route', weight: 7, color: '#10b981', opacity: 1 }]
-            }
-        }).addTo(map);
-        
-        // Draw Eco markers
-        ecoCoords.forEach((coord, i) => {
-            const isEndpoint = i === 0 || i === ecoCoords.length - 1;
-            L.circleMarker(coord, {
-                radius: isEndpoint ? 8 : 5,
-                fillColor: isEndpoint ? "#0ea5e9" : "#10b981",
-                color: "#fff",
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 1
-            }).bindTooltip(CITY_NAMES[routeArr[i]] || routeArr[i], {permanent: i === 0, direction: "top"}).addTo(currentRouteLayer);
-        });
-    }
-
-    // 2. Draw Shortest Route (Red) - only if different from Eco or explicitly requested
-    if (shortestArr.length > 0 && (JSON.stringify(routeArr) !== JSON.stringify(shortestArr))) {
-        const shortCoords = shortestArr.map(n => CITY_COORDS[n]).filter(Boolean);
-        if (shortCoords.length > 0) {
-            currentShortestRouteLayer = L.featureGroup().addTo(map);
-            
-            shortestRouteControlMain = L.Routing.control({
-                waypoints: shortCoords.map(c => L.latLng(c[0], c[1])),
-                routeWhileDragging: false,
-                addWaypoints: false,
-                fitSelectedRoutes: false, // Don't snap camera to shortest, prefer eco
-                showAlternatives: false,
-                createMarker: function() { return null; },
-                lineOptions: {
-                    styles: [{ className: 'glowing-route-shortest', weight: 4, color: '#ef4444', opacity: 0.7, dashArray: '5, 10' }]
-                }
-            }).addTo(map);
-
-            // Subtle markers for shortest path points if they aren't endpoints
-            shortCoords.forEach((coord, i) => {
-                const isEndpoint = i === 0 || i === shortCoords.length - 1;
-                if (!isEndpoint) {
-                    L.circleMarker(coord, {
-                        radius: 3,
-                        fillColor: "#ef4444",
-                        color: "#fff",
-                        weight: 1,
-                        opacity: 0.6,
-                        fillOpacity: 0.6
-                    }).addTo(currentShortestRouteLayer);
-                }
+function renderSegmentsData(credits, routeArr) {
+    const segContainer = document.getElementById('segment-container');
+    if (segContainer) {
+        segContainer.innerHTML = '';
+        if (credits && credits.segments) {
+            credits.segments.forEach(s => {
+                const segSign = s.credit_delta > 0 ? '+' : '';
+                const row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.justifyContent = 'space-between';
+                row.style.padding = '0.75rem';
+                row.style.background = 'rgba(0,0,0,0.2)';
+                row.style.borderRadius = '8px';
+                row.style.fontSize = '0.9rem';
+                row.innerHTML = `
+                    <div style="font-weight:600; color: #e2e8f0;">${CITY_NAMES[s.from] || s.from} → ${CITY_NAMES[s.to] || s.to}</div>
+                    <div style="color: #94a3b8;">AQI: ${s.avg_aqi}</div>
+                    <div style="color: ${s.credit_delta >= 0 ? '#10b981' : '#f43f5e'}; font-weight:600;">
+                        ${s.emoji} ${segSign}${s.credit_delta}
+                    </div>
+                `;
+                segContainer.appendChild(row);
             });
         }
     }
 
-    // Segments
-    const segContainer = document.getElementById('segment-container');
-    if (segContainer) {
-        segContainer.innerHTML = '';
-    
-    if (credits.segments) {
-        credits.segments.forEach(s => {
-            const segSign = s.credit_delta > 0 ? '+' : '';
-            const row = document.createElement('div');
-            row.style.display = 'flex';
-            row.style.justifyContent = 'space-between';
-            row.style.padding = '0.75rem';
-            row.style.background = 'rgba(0,0,0,0.2)';
-            row.style.borderRadius = '8px';
-            row.style.fontSize = '0.9rem';
-            
-            row.innerHTML = `
-                <div style="font-weight:600; color: #e2e8f0;">${CITY_NAMES[s.from] || s.from} → ${CITY_NAMES[s.to] || s.to}</div>
-                <div style="color: #94a3b8;">AQI: ${s.avg_aqi}</div>
-                <div style="color: ${s.credit_delta >= 0 ? '#10b981' : '#f43f5e'}; font-weight:600;">
-                    ${s.emoji} ${segSign}${s.credit_delta}
-                </div>
-            `;
-            segContainer.appendChild(row);
-        });
-    }
-    } // closes if (segContainer)
-
-    routeResults.classList.remove('hidden');
-    routeResults.classList.add('animate-in');
-    
-    // Segments Chart rendering
-    if (credits.segments && credits.segments.length > 0) {
+    if (credits && credits.segments && credits.segments.length > 0) {
         document.getElementById('route-segment-chart-card').style.display = 'block';
         const ctxRoute = document.getElementById('routeSegmentChart').getContext('2d');
         if (window.routeSegmentChartInstance) window.routeSegmentChartInstance.destroy();
@@ -697,37 +585,333 @@ function renderRouteResults(data) {
             data: {
                 labels: rLabels,
                 datasets: [
-                    {
-                        label: 'Avg AQI Risk',
-                        data: rAqi,
-                        backgroundColor: 'rgba(244, 63, 94, 0.7)',
-                        yAxisID: 'y'
-                    },
-                    {
-                        type: 'line',
-                        label: 'Distance (km)',
-                        data: rDist,
-                        borderColor: '#0ea5e9',
-                        backgroundColor: 'rgba(14, 165, 233, 0.2)',
-                        borderWidth: 2,
-                        tension: 0.3,
-                        yAxisID: 'y1'
-                    }
+                    { label: 'Avg AQI Risk', data: rAqi, backgroundColor: 'rgba(244, 63, 94, 0.7)', yAxisID: 'y' },
+                    { type: 'line', label: 'Distance (km)', data: rDist, borderColor: '#0ea5e9', backgroundColor: 'rgba(14, 165, 233, 0.2)', borderWidth: 2, tension: 0.3, yAxisID: 'y1' }
                 ]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' } },
-                    y1: { position: 'right', grid: { drawOnChartArea: false }, beginAtZero: true },
-                    x: { grid: { display: false } }
-                }
+                responsive: true, maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' } }, y1: { position: 'right', grid: { drawOnChartArea: false }, beginAtZero: true }, x: { grid: { display: false } } }
             }
         });
     } else {
         const segChart = document.getElementById('route-segment-chart-card');
         if (segChart) segChart.style.display = 'none';
+    }
+}
+
+function renderRouteResults(data) {
+    const routeArr = data.route || [];
+    const shortestArr = data.shortest_route || [];
+
+    // Map Updates - Clear previous
+    if (window.routeLayers) {
+        window.routeLayers.forEach(l => map.removeLayer(l));
+    } else {
+        if (typeof currentRouteLayer !== 'undefined' && currentRouteLayer) map.removeLayer(currentRouteLayer);
+        if (typeof currentShortestRouteLayer !== 'undefined' && currentShortestRouteLayer) map.removeLayer(currentShortestRouteLayer);
+    }
+    if (window.routeControls) {
+        window.routeControls.forEach(c => map.removeControl(c));
+    } else {
+        if (typeof window.routeControlMain !== 'undefined' && window.routeControlMain) map.removeControl(window.routeControlMain);
+        if (typeof shortestRouteControlMain !== 'undefined' && shortestRouteControlMain) map.removeControl(shortestRouteControlMain);
+    }
+    window.routeLayers = [];
+    window.routeControls = [];
+    
+    if (data.alternatives && data.alternatives.length > 0) {
+        // Sort alternatives: full (eco) always first, so it never gets dropped as a duplicate
+        data.alternatives.sort((a, b) => {
+            const order = { 'full': 1, 'medium': 2, 'shortest': 3 };
+            return (order[a.type] || 4) - (order[b.type] || 4);
+        });
+
+        const uniquePaths = new Set();
+        data.alternatives.forEach((alt, idx) => {
+            const pathStr = JSON.stringify(alt.route);
+            if (uniquePaths.has(pathStr)) return;
+            uniquePaths.add(pathStr);
+
+            const coords = alt.custom_coords ? alt.custom_coords : alt.route.map(n => CITY_COORDS[n]).filter(Boolean);
+            if (coords.length > 0) {
+                const layer = L.featureGroup(); // Do NOT addTo map immediately, we only add the first (selected) one
+                window.routeLayers.push(layer);
+
+                let color = '#10b981'; // Green for full eco
+                let weight = 7;
+                let className = 'glowing-route route-path-' + alt.type;
+                let opacity = 1;
+                let dashArray = '';
+
+                if (alt.type === 'shortest') {
+                    color = '#ef4444'; // Red
+                    weight = 4;
+                    className = 'glowing-route-shortest route-path-' + alt.type;
+                    opacity = 0.7;
+                    dashArray = '5, 10';
+                } else if (alt.type === 'medium') {
+                    color = '#f59e0b'; // Orange
+                    weight = 5;
+                    className = 'glowing-route route-path-' + alt.type;
+                    opacity = 0.9;
+                }
+
+                const ctrl = L.Routing.control({
+                    waypoints: coords.map(c => L.latLng(c[0], c[1])),
+                    routeWhileDragging: false,
+                    addWaypoints: false,
+                    fitSelectedRoutes: alt.type === 'full',
+                    showAlternatives: false,
+                    createMarker: function() { return null; },
+                    lineOptions: {
+                        styles: [{ className, weight, color, opacity, dashArray }]
+                    }
+                }).addTo(map);
+                window.routeControls.push(ctrl);
+
+                coords.forEach((coord, i) => {
+                    const isEndpoint = i === 0 || i === coords.length - 1;
+                    L.circleMarker(coord, {
+                        radius: isEndpoint ? 8 : 5,
+                        fillColor: isEndpoint ? "#0ea5e9" : color,
+                        color: "#fff",
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 1
+                    }).bindTooltip(CITY_NAMES[alt.route[i]] || alt.route[i], {
+                        permanent: true, 
+                        direction: "top", 
+                        className: 'city-tooltip',
+                        offset: [0, -5]
+                    }).addTo(layer);
+                });
+            }
+        });
+    } else {
+        // Fallback for custom routing
+        const ecoCoords = data.custom_coords ? data.custom_coords : routeArr.map(n => CITY_COORDS[n]).filter(Boolean);
+        if (ecoCoords.length > 0) {
+            const layer = L.featureGroup().addTo(map);
+            window.routeLayers.push(layer);
+            
+            const ctrl = L.Routing.control({
+                waypoints: ecoCoords.map(c => L.latLng(c[0], c[1])),
+                routeWhileDragging: false,
+                addWaypoints: false,
+                fitSelectedRoutes: true,
+                showAlternatives: false,
+                createMarker: function() { return null; },
+                lineOptions: {
+                    styles: [{ className: 'glowing-route', weight: 7, color: '#10b981', opacity: 1 }]
+                }
+            }).addTo(map);
+            window.routeControls.push(ctrl);
+            
+            ecoCoords.forEach((coord, i) => {
+                const isEndpoint = i === 0 || i === ecoCoords.length - 1;
+                L.circleMarker(coord, {
+                    radius: isEndpoint ? 8 : 5,
+                    fillColor: isEndpoint ? "#0ea5e9" : "#10b981",
+                    color: "#fff",
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 1
+                }).bindTooltip(CITY_NAMES[routeArr[i]] || routeArr[i], {permanent: i === 0, direction: "top"}).addTo(layer);
+            });
+        }
+        
+        if (shortestArr.length > 0 && (JSON.stringify(routeArr) !== JSON.stringify(shortestArr))) {
+            const shortCoords = shortestArr.map(n => CITY_COORDS[n]).filter(Boolean);
+            if (shortCoords.length > 0) {
+                const layer = L.featureGroup().addTo(map);
+                window.routeLayers.push(layer);
+                
+                const ctrl = L.Routing.control({
+                    waypoints: shortCoords.map(c => L.latLng(c[0], c[1])),
+                    routeWhileDragging: false,
+                    addWaypoints: false,
+                    fitSelectedRoutes: false,
+                    showAlternatives: false,
+                    createMarker: function() { return null; },
+                    lineOptions: {
+                        styles: [{ className: 'glowing-route-shortest', weight: 4, color: '#ef4444', opacity: 0.7, dashArray: '5, 10' }]
+                    }
+                }).addTo(map);
+                window.routeControls.push(ctrl);
+
+                shortCoords.forEach((coord, i) => {
+                    const isEndpoint = i === 0 || i === shortCoords.length - 1;
+                    if (!isEndpoint) {
+                        L.circleMarker(coord, {
+                            radius: 3,
+                            fillColor: "#ef4444",
+                            color: "#fff",
+                            weight: 1,
+                            opacity: 0.6,
+                            fillOpacity: 0.6
+                        }).addTo(layer);
+                    }
+                });
+            }
+        }
+    }
+
+    // Render Alternatives in Sidebar
+    const container = document.getElementById('route-alternatives-container');
+    if (container) {
+        container.innerHTML = '';
+        if (data.alternatives && data.alternatives.length > 0) {
+            const shortestAlt = data.alternatives.find(a => a.type === 'shortest') || data.alternatives[0];
+            const baseDist = shortestAlt.total_distance;
+            const basePoll = shortestAlt.total_pollution;
+        
+            const uniquePathsUI = new Set();
+            let currentLayerIdx = 0;
+            data.alternatives.forEach((alt, idx) => {
+                const pathStr = JSON.stringify(alt.route);
+                if (uniquePathsUI.has(pathStr)) return;
+                uniquePathsUI.add(pathStr);
+                
+                const thisLayerIdx = currentLayerIdx;
+                currentLayerIdx++;
+
+                const div = document.createElement('div');
+                div.className = 'card-inner';
+                let bg = 'rgba(16, 185, 129, 0.05)';
+                let border = 'rgba(16, 185, 129, 0.2)';
+                let textCol = '#10b981';
+                let title = '🌿 Eco Route (Low AQI)';
+
+                if (alt.type === 'shortest') {
+                    bg = 'rgba(239, 68, 68, 0.05)';
+                    border = 'rgba(239, 68, 68, 0.2)';
+                    textCol = '#ef4444';
+                    title = '🏎 Shortest Path';
+                } else if(alt.type === 'medium') {
+                    bg = 'rgba(245, 158, 11, 0.05)';
+                    border = 'rgba(245, 158, 11, 0.2)';
+                    textCol = '#f59e0b';
+                    title = '⚖️ Balanced Route';
+                }
+
+                let crd = alt.exposure_credits?.final_credit_change || 0;
+                let grade = alt.exposure_credits?.overall_grade || '?';
+                let emoji = alt.exposure_credits?.overall_emoji || '⚪';
+
+                let diffDist = Math.round(alt.total_distance - baseDist);
+                let diffPoll = Math.round(alt.total_pollution - basePoll);
+                let distStr = diffDist > 0 ? `+${diffDist} km` : `${diffDist} km`;
+                let pollStr = diffPoll > 0 ? `+${diffPoll} Risk` : `${diffPoll} Risk`;
+                
+                let compHTML = '';
+                if (alt.type === 'shortest') {
+                    compHTML = `<span style="font-size:0.75rem; background:rgba(255,255,255,0.1); padding:0.1rem 0.4rem; border-radius:4px; color:#94a3b8;">Baseline</span>`;
+                } else if (diffPoll < 0) {
+                    compHTML = `<span style="font-size:0.75rem; background:rgba(16, 185, 129, 0.15); color:#10b981; padding:0.1rem 0.4rem; border-radius:4px;" title="Compared to Shortest Path">${distStr} | ${pollStr}</span>`;
+                } else {
+                    compHTML = `<span style="font-size:0.75rem; background:rgba(255, 255, 255, 0.1); color:#cbd5e1; padding:0.1rem 0.4rem; border-radius:4px;">${distStr} | ${pollStr}</span>`;
+                }
+                
+                let badgeHTML = '';
+                if (alt.type === 'full') {
+                    badgeHTML = `<span style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-size: 0.7rem; font-weight: 800; padding: 0.2rem 0.5rem; border-radius: 4px; box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 0.25rem; margin-left: 0.5rem;">✨ Recommended</span>`;
+                }
+
+                div.style = `background: ${bg}; border: 1px solid ${border}; border-radius: 12px; padding: 1rem; cursor: pointer; transition: all 0.2s; position:relative;`;
+                div.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div>
+                            <h4 style="color: ${textCol}; margin:0 0 0.25rem 0; display:flex; align-items:center; font-size: 0.95rem;">
+                                <span>${title}</span> 
+                                <span style="font-size:0.8rem; margin-left:0.5rem; background:rgba(0,0,0,0.3); padding:0.1rem 0.4rem; border-radius: 4px;">${emoji} Grade ${grade}</span>
+                                ${badgeHTML}
+                            </h4>
+                            <div style="font-size:0.85rem; color:#94a3b8; margin-bottom:0.5rem; display:flex; align-items:center; gap: 0.75rem;">
+                                <span>Exposure: <b style="color:#fff">${Math.round(alt.total_pollution)}</b></span>
+                                <span>Credits: <span style="color:${crd >= 0 ? '#10b981' : '#ef4444'}; font-weight: bold;">${crd>0?'+':''}${crd}</span></span>
+                            </div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size:0.9rem; font-weight:bold; color: ${textCol}; background:${border}; padding:0.2rem 0.6rem; border-radius:12px; display:inline-block;">
+                                ${Math.round(alt.total_distance)} km
+                            </div>
+                            <div style="margin-top:0.4rem; justify-content:flex-end; display:flex;">
+                                ${compHTML}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="font-size:0.8rem; padding:0.4rem; background:rgba(0,0,0,0.2); border-radius:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#e2e8f0; margin-top:0.5rem;">
+                        <span style="opacity:0.6; margin-right:4px;">PATH:</span> ${alt.route.map(n => CITY_NAMES[n] || n).join(' → ')}
+                    </div>
+                `;
+
+                div.onclick = () => {
+                    Array.from(container.children).forEach(c => {
+                        c.style.border = '1px solid rgba(255,255,255,0.05)';
+                        c.style.boxShadow = 'none';
+                    });
+                    div.style.border = `2px solid ${textCol}`;
+                    div.style.boxShadow = `0 0 15px ${border}`;
+                    
+                    if (window.routeLayers) {
+                        window.routeLayers.forEach((l, idx) => {
+                            if (idx === thisLayerIdx) {
+                                map.addLayer(l); // Show markers and names for selected
+                            } else {
+                                map.removeLayer(l); // Hide others
+                            }
+                        });
+                        
+                        // Path SVG Opacity logic
+                        setTimeout(() => {
+                            const pathsDOM = document.querySelectorAll('path.glowing-route, path.glowing-route-shortest, path[class*="route-path-"]');
+                            pathsDOM.forEach(el => {
+                                if (el.classList.contains('route-path-' + alt.type)) {
+                                    el.style.opacity = '1';
+                                    if(el.style.strokeOpacity) el.style.strokeOpacity = '1';
+                                    if (el.parentNode) el.parentNode.appendChild(el); // Bring to front SVG trick
+                                } else {
+                                    el.style.opacity = '0.15';
+                                    if(el.style.strokeOpacity) el.style.strokeOpacity = '0.15';
+                                }
+                            });
+                        }, 50); // Small delay to let LRM finish drawing if still busy
+                    }
+                    
+                    renderSegmentsData(alt.exposure_credits, alt.route);
+                };
+
+                container.appendChild(div);
+            });
+
+            // Default selection
+            setTimeout(() => {
+                const reqType = 'full';
+                let pickIdx = data.alternatives.findIndex(a => a.type === reqType);
+                if (pickIdx === -1) pickIdx = 0;
+                
+                // Map the pickIdx to the deduplicated DOM list
+                const u = new Set();
+                let actualDomIdx = 0;
+                for(let i=0; i<=pickIdx; i++){
+                    const p = JSON.stringify(data.alternatives[i].route);
+                    if(!u.has(p)) { u.add(p); actualDomIdx = u.size - 1; }
+                }
+
+                if (container.children[actualDomIdx]) container.children[actualDomIdx].click();
+            }, 50);
+        } else {
+            renderSegmentsData(data.exposure_credits, routeArr);
+        }
+    } else {
+        renderSegmentsData(data.exposure_credits, routeArr);
+    }
+
+    const routeResults = document.getElementById('route-results');
+    if (routeResults) {
+        routeResults.classList.remove('hidden');
+        routeResults.classList.add('animate-in');
     }
 
     // Fix Leaflet grey map loading issue
@@ -740,7 +924,7 @@ function renderRouteResults(data) {
 
 // --- AQI Matrix Logic ---
 window.aqiLoaded = false;
-let aqiChartInstance = null;
+var aqiChartInstance = null;
 
 async function loadAqiData() {
     const container = document.getElementById('aqi-container');
