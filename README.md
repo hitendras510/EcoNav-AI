@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 ---
 title: EcoNav AI
 emoji: 🌍
@@ -9,8 +7,6 @@ sdk: docker
 app_port: 7860
 pinned: false
 ---
-
->>>>>>> 1c2f25b401a67215ea459ece945cb72cc7dbd373
 # 🌱 EcoNav AI — Exposure Credit OpenEnv
 
 An OpenEnv-compliant Reinforcement Learning environment built for the Meta AI Environmental Decision Intelligence Hackathon. 
