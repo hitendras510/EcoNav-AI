@@ -1,24 +1,12 @@
-<<<<<<< HEAD
+import os
+import sys
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-import os
-import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../packages/agent-engine")))
 from agent.rl_agent import RLAgent
 from packages.env_core.envs.pollution_env.env import ExposureCreditEnv, TASKS
-=======
-import os
-import sys
-
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../packages/agent-engine")))
-from agent.rl_agent import RLAgent
-
-from packages.env_core.envs.pollution_env.env import TASKS, ExposureCreditEnv
->>>>>>> 1c2f25b401a67215ea459ece945cb72cc7dbd373
 from packages.env_core.envs.pollution_env.models import Action
 
 router = APIRouter(tags=["Simulator Engine"])

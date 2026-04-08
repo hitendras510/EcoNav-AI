@@ -20,12 +20,8 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-<<<<<<< HEAD
   ],
   "dependencies": {
     "lucide-react": "^1.7.0"
   }
-=======
-  ]
->>>>>>> 1c2f25b401a67215ea459ece945cb72cc7dbd373
 }
