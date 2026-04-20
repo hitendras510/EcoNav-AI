@@ -78,6 +78,7 @@ const CREDIT_RESET_AMOUNT = 1000;
 let lastResetDate = localStorage.getItem('econav_last_reset_date');
 let todayStr = new Date().toDateString();
 let globalCredits;
+let initialTripCredits = 0; // Baseline before current trip started
 
 if (lastResetDate !== todayStr) {
     globalCredits = CREDIT_RESET_AMOUNT;
@@ -88,13 +89,41 @@ if (lastResetDate !== todayStr) {
     if (isNaN(globalCredits)) globalCredits = CREDIT_RESET_AMOUNT;
 }
 
-function updateGlobalCreditsUI() {
+const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+async function animateCredits(start, end) {
+    const duration = 500;
+    const startTime = performance.now();
+    const valObj = document.getElementById('global-credits-val');
+    if (!valObj) return;
+    
+    return new Promise(resolve => {
+        function step(now) {
+            const progress = Math.min((now - startTime) / duration, 1);
+            const current = Math.floor(start + (end - start) * progress);
+            valObj.textContent = current;
+            updateGlobalCreditsUI(current);
+            
+            if (progress < 1) {
+                requestAnimationFrame(step);
+            } else {
+                resolve();
+            }
+        }
+        requestAnimationFrame(step);
+    });
+}
+
+function updateGlobalCreditsUI(overrideVal = null) {
     const badge = document.getElementById('global-credit-badge');
     const valObj = document.getElementById('global-credits-val');
-    valObj.textContent = globalCredits;
+    if (!badge || !valObj) return;
+    
+    const val = overrideVal !== null ? overrideVal : globalCredits;
+    valObj.textContent = val;
     
     // Scale indicating depletion of today's health credits
-    if (globalCredits >= 800) {
+    if (val >= 800) {
         // Green
         badge.style.background = 'rgba(16, 185, 129, 0.1)';
         badge.style.color = '#10b981';
@@ -113,6 +142,7 @@ function updateGlobalCreditsUI() {
     }
 }
 updateGlobalCreditsUI();
+initialTripCredits = globalCredits;
 
 // --- Credit Info Tooltip Click Toggle ---
 (function() {
@@ -286,11 +316,12 @@ btnSubmit.addEventListener('click', async () => {
                     total_distance: mockDist,
                     total_pollution: mockPoll,
                     exposure_credits: {
-                        final_credit_change: type === 'full' ? 45 : (type === 'medium' ? 10 : -35),
+                        final_credit_change: type === 'full' ? 65 : (type === 'medium' ? 25 : -85),
                         overall_grade: type === 'full' ? "A" : (type === 'medium' ? "B" : "D"),
                         overall_emoji: type === 'full' ? "🌟" : (type === 'medium' ? "🟢" : "🔴"),
+                        grade_summary: type === 'full' ? "🎉 You earned 65 credits! (Eco Bonus included)" : (type === 'medium' ? "🎉 You earned 25 credits! (Balanced)" : "⚠️ You lost 85 credits. (Shortest Path Penalty applied)"),
                         segments: [
-                            {from: startStr, to: endStr, avg_aqi: pseudoAqi, credit_delta: type === 'full' ? 45 : -35, emoji: type === 'full' ? "🌟" : "🔴"}
+                            {from: startStr, to: endStr, avg_aqi: pseudoAqi, credit_delta: type === 'full' ? 45 : -55, emoji: type === 'full' ? "🌟" : "🔴"}
                         ]
                     }
                 };
@@ -315,11 +346,19 @@ btnSubmit.addEventListener('click', async () => {
 
         renderRouteResults(data);
         
-        // Deduct/Add credits to global state
+        // Credits are now animated inside renderSegmentsData when an alternative is clicked/selected
+        // We just update the internal state here, but the UI update will be handled by the animation
         const creditsEarned = data.exposure_credits.final_credit_change || 0;
+        
+        // Record baseline (current globalCredits) before applying these specific results
+        initialTripCredits = globalCredits; 
+        
+        // Update the internal state
         globalCredits += creditsEarned;
         localStorage.setItem('econav_credits', globalCredits);
-        updateGlobalCreditsUI();
+        
+        // Note: updateGlobalCreditsUI() is NOT called here anymore; 
+        // it's called at the end of the animation in renderSegmentsData.
         
     } catch (err) {
         routeError.textContent = err.message;
@@ -378,7 +417,10 @@ document.getElementById('submit-traffic').addEventListener('click', async () => 
                 custom_coords: [[startLat, startLng], [endLat, endLng]],
                 total_distance: mockDist,
                 total_pollution: mockPollution,
-                exposure_credits: { segments: [{from: start, to: end, avg_aqi: Math.floor(Math.random()*200), emoji: "🚦"}] }
+                exposure_credits: { 
+                    grade_summary: "➡️ No credit change. (1 segment)",
+                    segments: [{from: start, to: end, avg_aqi: Math.floor(Math.random()*200), emoji: "🚦"}] 
+                }
             };
         }
         
@@ -405,6 +447,24 @@ document.getElementById('submit-traffic').addEventListener('click', async () => 
         document.getElementById('traffic-warning-banner').style.background = bannerColor;
         document.getElementById('traffic-multiplier-badge').textContent = `x${multiplier.toFixed(1)} Flow`;
         document.getElementById('traffic-multiplier-badge').style.color = bannerColor;
+
+        // Traffic Credit Summary
+        const trafficSummary = document.getElementById('traffic-credit-summary');
+        if (trafficSummary) {
+            if (data.exposure_credits && data.exposure_credits.grade_summary) {
+                trafficSummary.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:0.75rem;">
+                        <div style="font-size:1.5rem;">${data.exposure_credits.overall_emoji || '🚥'}</div>
+                        <div style="font-weight:600; color:#fff; font-size:0.95rem; line-height:1.4;">${data.exposure_credits.grade_summary}</div>
+                    </div>
+                `;
+                trafficSummary.style.display = 'block';
+                trafficSummary.style.background = `${bannerColor}11`;
+                trafficSummary.style.borderColor = `${bannerColor}33`;
+            } else {
+                trafficSummary.style.display = 'none';
+            }
+        }
 
         // Render Timeline UI
         const tlContainer = document.getElementById('traffic-segment-timeline');
@@ -544,31 +604,92 @@ document.getElementById('submit-traffic').addEventListener('click', async () => 
     }
 });
 
-function renderSegmentsData(credits, routeArr) {
+async function renderSegmentsData(credits, routeArr) {
+    const summaryContainer = document.getElementById('credit-summary-container');
     const segContainer = document.getElementById('segment-container');
-    if (segContainer) {
-        segContainer.innerHTML = '';
-        if (credits && credits.segments) {
-            credits.segments.forEach(s => {
-                const segSign = s.credit_delta > 0 ? '+' : '';
-                const row = document.createElement('div');
-                row.style.display = 'flex';
-                row.style.justifyContent = 'space-between';
-                row.style.padding = '0.75rem';
-                row.style.background = 'rgba(0,0,0,0.2)';
-                row.style.borderRadius = '8px';
-                row.style.fontSize = '0.9rem';
-                row.innerHTML = `
-                    <div style="font-weight:600; color: #e2e8f0;">${CITY_NAMES[s.from] || s.from} → ${CITY_NAMES[s.to] || s.to}</div>
-                    <div style="color: #94a3b8;">AQI: ${s.avg_aqi}</div>
-                    <div style="color: ${s.credit_delta >= 0 ? '#10b981' : '#f43f5e'}; font-weight:600;">
-                        ${s.emoji} ${segSign}${s.credit_delta}
-                    </div>
-                `;
-                segContainer.appendChild(row);
-            });
+    if (!segContainer) return;
+
+    // Clear previous
+    segContainer.innerHTML = '';
+    if (summaryContainer) summaryContainer.style.display = 'none';
+
+    // Get current display value to start animation from
+    // Always start from initialTripCredits to ensure clicking alternatives doesn't stack deductions
+    let displayVal = initialTripCredits;
+    updateGlobalCreditsUI(displayVal);
+
+    if (summaryContainer && credits && credits.grade_summary) {
+        summaryContainer.innerHTML = `
+            <div style="display:flex; align-items:center; gap:0.75rem;">
+                <div style="font-size:1.5rem;">${credits.overall_emoji || '📊'}</div>
+                <div style="font-weight:600; color:#fff; font-size:0.95rem; line-height:1.4;">${credits.grade_summary}</div>
+            </div>
+        `;
+        summaryContainer.style.display = 'block';
+        
+        // Adjust background color based on credits
+        if (credits.final_credit_change > 0) {
+            summaryContainer.style.background = 'rgba(16, 185, 129, 0.1)';
+            summaryContainer.style.borderColor = 'rgba(16, 185, 129, 0.2)';
+        } else if (credits.final_credit_change < 0) {
+            summaryContainer.style.background = 'rgba(239, 68, 68, 0.1)';
+            summaryContainer.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+        } else {
+            summaryContainer.style.background = 'rgba(148, 163, 184, 0.1)';
+            summaryContainer.style.borderColor = 'rgba(148, 163, 184, 0.2)';
         }
     }
+
+    if (credits && credits.segments) {
+        // Sequentially render segments and animate credits
+        for (const s of credits.segments) {
+            const segSign = s.credit_delta > 0 ? '+' : '';
+            const row = document.createElement('div');
+            row.className = 'animate-in'; // Apply entrance animation
+            row.style.display = 'flex';
+            row.style.justifyContent = 'space-between';
+            row.style.padding = '0.75rem';
+            row.style.background = 'rgba(0,0,0,0.2)';
+            row.style.borderRadius = '8px';
+            row.style.fontSize = '0.9rem';
+            row.style.borderLeft = `4px solid ${s.credit_delta >= 0 ? '#10b981' : '#f43f5e'}`;
+            
+            row.innerHTML = `
+                <div style="font-weight:600; color: #e2e8f0;">${CITY_NAMES[s.from] || s.from} → ${CITY_NAMES[s.to] || s.to}</div>
+                <div style="color: #94a3b8;">AQI: ${s.avg_aqi}</div>
+                <div style="color: ${s.credit_delta >= 0 ? '#10b981' : '#f43f5e'}; font-weight:600;">
+                    ${s.emoji} ${segSign}${s.credit_delta}
+                </div>
+            `;
+            segContainer.appendChild(row);
+            
+            // Animate global credit change for this segment
+            const targetVal = displayVal + s.credit_delta;
+            await animateCredits(displayVal, targetVal);
+            displayVal = targetVal;
+            
+            await sleep(300); // Small pause between segments
+        }
+        
+        // Final Eco Bonus Animation
+        if (credits.eco_bonus > 0) {
+            const bonusRow = document.createElement('div');
+            bonusRow.className = 'animate-in';
+            bonusRow.style = 'display:flex; justify-content:space-between; padding:0.75rem; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); border-radius:8px; font-size:0.9rem; font-weight:bold; color:#10b981; margin-top:0.5rem;';
+            bonusRow.innerHTML = `
+                <div>✨ Eco-conscious Choice Bonus</div>
+                <div>+${credits.eco_bonus}</div>
+            `;
+            segContainer.appendChild(bonusRow);
+            
+            const finalVal = displayVal + credits.eco_bonus;
+            await animateCredits(displayVal, finalVal);
+            displayVal = finalVal;
+        }
+    }
+
+    // Ensure the UI is perfectly synced with global state at the end
+    updateGlobalCreditsUI();
 
     if (credits && credits.segments && credits.segments.length > 0) {
         document.getElementById('route-segment-chart-card').style.display = 'block';

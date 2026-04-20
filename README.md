@@ -67,6 +67,7 @@ EcoNav-AI/
 - **Node.js**: >= 18.0.0
 - **Python**: >= 3.10
 - **npm**: >= 11.11.0
+- **Docker**: (Optional) For containerized deployment
 
 ### Quick Start (Recommended)
 1. **Clone the repository**:
@@ -90,6 +91,31 @@ EcoNav-AI/
 ### Manual Startup
 - **Backend**: `python server/app.py` (Runs on [http://localhost:7860](http://localhost:7860))
 - **Frontend**: `npm run dev --prefix apps/frontend` (Runs on [http://localhost:5173](http://localhost:5173))
+
+---
+
+## 🐋 Docker Deployment
+
+EcoNav AI is fully containerized and ready for deployment on Hugging Face Spaces or your local infrastructure.
+
+### 1. Build & Run (Single Container)
+This builds both the frontend and backend into a single production-ready image.
+
+```bash
+# Build the image
+docker build -t econav-ai .
+
+# Run the container
+docker run -p 7860:7860 econav-ai
+```
+The application will be available at [http://localhost:7860](http://localhost:7860).
+
+### 2. Using Docker Compose
+For development with separate services:
+
+```bash
+docker-compose -f infra/docker/docker-compose.yml up --build
+```
 
 ---
 

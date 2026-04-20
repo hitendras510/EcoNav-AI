@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 from collections import defaultdict
 
-
+#here RL is using Q-Learning mechanism with epsilon-greedy strategy to choose actions
 class RLAgent:
     def __init__(self, epsilon: float = 0.2) -> None:
         self.epsilon = epsilon

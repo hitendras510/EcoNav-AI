@@ -39,7 +39,7 @@ GRADE_TABLE = [
         "grade": "A",
         "label": "Pristine Air",
         "emoji": "🟢",
-        "credits": +10,
+        "credits": +15,  # Increased from +10
         "color": "#4CAF50",
     },
     {
@@ -47,7 +47,7 @@ GRADE_TABLE = [
         "grade": "B",
         "label": "Acceptable",
         "emoji": "🟡",
-        "credits": +5,
+        "credits": +8,   # Increased from +5
         "color": "#FFC107",
     },
     {
@@ -55,7 +55,7 @@ GRADE_TABLE = [
         "grade": "C",
         "label": "Moderate Risk",
         "emoji": "🟠",
-        "credits": -5,
+        "credits": 0,    # Corrected from -5 (as per docstring)
         "color": "#FF9800",
     },
     {
@@ -63,7 +63,7 @@ GRADE_TABLE = [
         "grade": "D",
         "label": "High Risk",
         "emoji": "🔴",
-        "credits": -15,
+        "credits": -25,  # Increased from -15
         "color": "#F44336",
     },
     {
@@ -71,7 +71,7 @@ GRADE_TABLE = [
         "grade": "E",
         "label": "Dangerous",
         "emoji": "🟣",
-        "credits": -30,
+        "credits": -50,  # Increased from -30
         "color": "#9C27B0",
     },
     {
@@ -79,7 +79,7 @@ GRADE_TABLE = [
         "grade": "F",
         "label": "Hazardous",
         "emoji": "⚫",
-        "credits": -50,
+        "credits": -100, # Increased from -50
         "color": "#7E0023",
     },
 ]
@@ -264,7 +264,7 @@ def calculate_route_credits(
 
     total_change = sum(s.credit_delta for s in segments)
 
-    # Eco bonus: reward for choosing eco route
+    # Eco bonus / Shortest path penalty
     eco_bonus = 0
     if is_eco_route and shortest_route and route != shortest_route:
         # Calculate what the shortest route would have cost
@@ -274,9 +274,14 @@ def calculate_route_credits(
             shortest_segments.append(seg)
         shortest_change = sum(s.credit_delta for s in shortest_segments)
 
-        # Bonus = difference in credits (eco is better) + flat bonus for choosing green
+        # Significant Reward for choosing the healthier route
         improvement = total_change - shortest_change
-        eco_bonus = max(0, improvement) + 5  # +5 flat bonus for choosing eco
+        eco_bonus = max(0, improvement) + 20  # +20 flat bonus for being eco-conscious
+    
+    elif not is_eco_route and shortest_route and route == shortest_route:
+        # Penalty for choosing the polluting shortest path instead of a healthier alternative
+        if total_change < 0:
+            eco_bonus = -30  # "Shortest Path Penalty" to encourage exploring eco routes
 
     final_change = total_change + eco_bonus
 

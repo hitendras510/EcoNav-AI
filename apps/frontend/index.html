@@ -203,6 +203,10 @@
                             <!-- Dynamically injected via JS -->
                         </div>
                         
+                        <div id="credit-summary-container" style="margin-bottom: 1rem; padding: 1rem; border-radius: 12px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); display: none;">
+                            <!-- Injected via JS -->
+                        </div>
+
                         <div class="info-banner" id="info-banner-text">
                             ℹ️ Green paths prioritize health; Red paths prioritize distance; Orange balance both.
                         </div>
@@ -221,6 +225,11 @@
                     <h3 style="margin-bottom: 1rem;">📊 Segment Exposure Risk Analysis</h3>
                     <div style="position: relative; height: 250px; width: 100%;">
                         <canvas id="routeSegmentChart"></canvas>
+                    </div>
+                    
+                    <h4 style="margin-top: 1.5rem; margin-bottom: 0.75rem; font-size: 0.9rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;">Route Segment Details</h4>
+                    <div id="segment-container" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <!-- Injected via JS -->
                     </div>
                 </div>
             </div>
@@ -300,6 +309,11 @@
                             <span class="pill" id="traffic-res-exp" style="border-color:#f59e0b; color:#f59e0b; font-weight:bold;">Traffic Exp: ...</span>
                         </div>
                         
+                        <h4 style="font-size:0.85rem; color:#94a3b8; margin-bottom:0.75rem; text-transform:uppercase; letter-spacing:1px;">Route Summary & Exposure Credits</h4>
+                        <div id="traffic-credit-summary" style="margin-bottom: 1.5rem; padding: 1rem; border-radius: 12px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); display: none;">
+                            <!-- Injected via JS -->
+                        </div>
+
                         <h4 style="font-size:0.85rem; color:#94a3b8; margin-bottom:0.75rem; text-transform:uppercase; letter-spacing:1px;">Route Timeline & Local AQI</h4>
                         <div id="traffic-segment-timeline" style="display:flex; flex-direction:column; gap:0.5rem; overflow-x:auto; padding-bottom:0.5rem;">
                             <!-- Injected JS Step Timeline -->
